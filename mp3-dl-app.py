@@ -1,9 +1,8 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
-from pytube import YouTube
+from yt_dlp import YoutubeDL
 import os
 
-SUPPRESS_OUTPUT = False # suppress ffmpeg command outputs
 ALLOW_ALERTS = False # allow popup message boxes
 DEFAULT_PATH = os.path.expanduser("~/Downloads")
 
@@ -12,36 +11,26 @@ def set_label(label: tk.Label, s: str):
     label.update_idletasks()
 
 def download_audio(link: str, dl_path: str, status_label: tk.Label):
-    try:
-        set_label(status_label, "Finding Video...")
-        yt = YouTube(link)
-        audio = yt.streams.filter(only_audio=True).first()
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }],
+        'outtmpl': os.path.join(dl_path, '%(title)s.%(ext)s')
+    }
 
-        set_label(status_label, "Downloading...")
-        file_path = audio.download(output_path=dl_path)
-
-        set_label(status_label, "Converting...")
-        to_mp3(file_path)
-        
-        if ALLOW_ALERTS: messagebox.showinfo("Download Complete", f"Downloaded: {yt.title}")
-        set_label(status_label, "Done!")
-    except Exception as e:
-        if ALLOW_ALERTS: messagebox.showerror("Error", f"Download failed: {e}")
-        else: set_label(status_label, f"Download failed: {e}")
-
-def to_mp3(file_path: str):
-    stem, ext = os.path.splitext(file_path)
-    mp3_path = stem + ".mp3"
-    if os.path.exists(mp3_path):
-        if ALLOW_ALERTS:
-            overwrite = messagebox.askyesno("File Exists", f"The file '{mp3_path}' already exists. Do you want to overwrite it?")
-            if not overwrite: return
-        os.remove(mp3_path) # remove by default
-    convert_cmd = f'ffmpeg -i "{file_path}" "{stem}.mp3"'
-    if SUPPRESS_OUTPUT: convert_cmd += ' > /dev/null 2>&1'
-
-    os.system(convert_cmd)
-    os.remove(file_path)
+    with YoutubeDL(ydl_opts) as ydl:
+        try:
+            set_label(status_label, "Downloading...")
+            ydl.download(link)
+            
+            if ALLOW_ALERTS: messagebox.showinfo("Download Complete")
+            set_label(status_label, "Done!")
+        except Exception as e:
+            if ALLOW_ALERTS: messagebox.showerror("Error", f"Download failed: {e}")
+            else: set_label(status_label, f"Download failed: {e}")
 
 def main():
     root = tk.Tk()
