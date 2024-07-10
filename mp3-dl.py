@@ -3,8 +3,12 @@
 from typing import List
 from yt_dlp import YoutubeDL
 import os, argparse
+import platform
 
-DOWNLOAD_PATH = "/Users/michael/Downloads" # replace with the desired download directory
+system = platform.system()
+user_dl_path = os.path.expanduser("~\\Downloads") if system == "Windows" else os.path.expanduser("~/Downloads")
+
+DOWNLOAD_PATH = user_dl_path # replace with the desired download directory
 LIST_PATH = "/Users/michael/Desktop/m/ytmp3.txt" # directory of a file with links to dowload, one per line
 
 def download(links: List[str], suppress: bool = True) -> None:
