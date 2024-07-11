@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from yt_dlp import YoutubeDL
-import os
+import os, threading
 
 ALLOW_ALERTS = False # allow popup message boxes
 DEFAULT_PATH = os.path.expanduser("~/Downloads")
@@ -10,27 +10,37 @@ def set_label(label: tk.Label, s: str):
     label.config(text=s)
     label.update_idletasks()
 
-def download_audio(link: str, dl_path: str, status_label: tk.Label):
-    ydl_opts = {
-        'format': 'bestaudio/best',
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp3',
-            'preferredquality': '192',
-        }],
-        'outtmpl': os.path.join(dl_path, '%(title)s.%(ext)s')
-    }
+def get_title(link: str) -> str:
+    with YoutubeDL({'quiet': True, 'skip_download': True}) as ydl:
+        info_dict = ydl.extract_info(link, download=False)
+        title_str = info_dict.get('title', '[Untitled]')
+        if len(title_str) > 50: title_str = title_str[:50] + "..."
+        return title_str
 
-    with YoutubeDL(ydl_opts) as ydl:
-        try:
-            set_label(status_label, "Downloading...")
-            ydl.download(link)
-            
-            if ALLOW_ALERTS: messagebox.showinfo("Download Complete")
-            set_label(status_label, "Done!")
-        except Exception as e:
-            if ALLOW_ALERTS: messagebox.showerror("Error", f"Download failed: {e}")
-            else: set_label(status_label, f"Download failed: {e}")
+def download_audio(link: str, dl_path: str, status_label: tk.Label):
+    def download_thread():
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192',
+            }],
+            'outtmpl': os.path.join(dl_path, '%(title)s.%(ext)s')
+        }
+
+        set_label(status_label, f"Finding video...")
+        set_label(status_label, f"Downloading: \"{get_title(link)}\"")
+        with YoutubeDL(ydl_opts) as ydl:
+            try:
+                ydl.download([link])
+                if ALLOW_ALERTS: messagebox.showinfo("Download Complete")
+                set_label(status_label, "Done!")
+            except Exception as e:
+                if ALLOW_ALERTS: messagebox.showerror("Error", f"Download failed: {e}")
+                else: set_label(status_label, f"Download failed: {e}")
+
+    threading.Thread(target=download_thread).start()
 
 def main():
     root = tk.Tk()
