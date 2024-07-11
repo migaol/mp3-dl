@@ -5,8 +5,7 @@ Download youtube videos as .mp3 files
 How to use (GUI):
 - Download `mp3-dl-app` in the `dist` folder.  Then double click to run.
 - Paste links into the GUI and click download.
-Alternatively:
-- Download & run `python3 mp3-dl-app.py`.
+- Alternatively, download & run `python3 mp3-dl-app.py`.
 
 How to use (CLI):
 - Download & run `python3 mp3-dl.py`.
